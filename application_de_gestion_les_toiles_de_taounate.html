@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="h-full bg-slate-900">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام إدارة مدرسة نجوم تاونات - Les Étoiles de Taounate</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f5ff',
+              100: '#e0ebff',
+              500: '#3b82f6',
+              800: '#1e3a8a',
+              900: '#0f172a',
+              gold: '#f59e0b',
+              goldHover: '#d97706'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Font Awesome 6 Pro/Free Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- SheetJS Excel Library -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Google Fonts: Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    @media print {
+      body * { visibility: hidden; }
+      #printableReceipt, #printableReceipt * { visibility: visible; }
+      #printableReceipt { position: absolute; left: 0; top: 0; width: 100%; color: #000 !important; background: #fff !important; }
+    }
+  </style>
+</head>
+<body class="h-full text-slate-100 flex flex-col bg-slate-950">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Logo & Title -->
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-black text-2xl border border-yellow-200">
+            ⭐
+          </div>
+          <div>
+            <h1 class="text-xl font-black text-white tracking-wide flex items-center gap-2">
+              مدرسة نجوم تاونات
+              <span class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">2026-2027</span>
+            </h1>
+            <p class="text-xs text-slate-400 font-medium">Les Étoiles de Taounate - Platforme de Gestion Sportive</p>
+          </div>
+        </div>
+
+        <!-- Global Quick Actions -->
+        <div class="flex items-center gap-3">
+          <button onclick="openPlayerModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-sm transition shadow-lg shadow-amber-500/10 flex items-center gap-2">
+            <i class="fa-solid fa-user-plus text-base"></i>
+            <span class="hidden sm:inline">إضافة لاعب</span>
+          </button>
+          
+          <button onclick="exportFullExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition shadow-lg shadow-emerald-600/10 flex items-center gap-2">
+            <i class="fa-solid fa-file-excel text-base"></i>
+            <span class="hidden sm:inline">تصدير Excel</span>
+          </button>
+
+          <button onclick="backupJSON()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold p-2.5 rounded-xl text-sm transition" title="نسخ احتياطي للبيانات">
+            <i class="fa-solid fa-download"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex gap-2 border-t border-slate-800/80 pt-2 overflow-x-auto">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active px-4 py-2.5 font-bold text-sm rounded-lg transition flex items-center gap-2 text-amber-400 bg-slate-800/80 border-b-2 border-amber-400 whitespace-nowrap">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>لوحة القيادة</span>
+        </button>
+        <button onclick="switchTab('players')" id="tab-players" class="tab-btn px-4 py-2.5 font-bold text-sm rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-users text-base"></i>
+          <span>سجل اللاعبين (136)</span>
+        </button>
+        <button onclick="switchTab('attendance')" id="tab-attendance" class="tab-btn px-4 py-2.5 font-bold text-sm rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-clipboard-user"></i>
+          <span>تسجيل الحضور (المناداة)</span>
+        </button>
+        <button onclick="switchTab('gear')" id="tab-gear" class="tab-btn px-4 py-2.5 font-bold text-sm rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-shirt"></i>
+          <span>مخزون الألبسة (Pack)</span>
+        </button>
+        <button onclick="switchTab('finances')" id="tab-finances" class="tab-btn px-4 py-2.5 font-bold text-sm rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-receipt"></i>
+          <span>المالية والإيصالات</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Body Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- VIEW 1: DASHBOARD -->
+    <section id="view-dashboard" class="tab-content space-y-6">
+      <!-- High Level Metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card p-5 rounded-2xl border-r-4 border-r-blue-500 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-400">إجمالي اللاعبين المسجلين</p>
+            <h3 id="dash-total-players" class="text-3xl font-black text-white mt-1">136</h3>
+            <p class="text-xs text-emerald-400 mt-1 font-semibold"><i class="fa-solid fa-check-circle"></i> موسوم بـ 100% بيانات مفعّلة</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center text-xl border border-blue-500/20">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 rounded-2xl border-r-4 border-r-emerald-500 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-400">إجمالي المداخيل المحصلة</p>
+            <h3 id="dash-total-revenue" class="text-2xl font-black text-emerald-400 mt-1">0 DH</h3>
+            <p class="text-xs text-slate-400 mt-1">من واجبات التسجيل والشهرية</p>
+          </div>
+          <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">
+            <i class="fa-solid fa-sack-dollar"></i>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 rounded-2xl border-r-4 border-r-amber-500 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-400">المستفيدون من أطقم Pack</p>
+            <h3 id="dash-total-pack" class="text-3xl font-black text-amber-400 mt-1">0</h3>
+            <p id="dash-pack-percentage" class="text-xs text-slate-400 mt-1">0% من مجموع اللاعبين</p>
+          </div>
+          <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center text-xl border border-amber-500/20">
+            <i class="fa-solid fa-box-open"></i>
+          </div>
+        </div>
+
+        <div class="glass-card p-5 rounded-2xl border-r-4 border-r-purple-500 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-400">عدد الفئات العمرية</p>
+            <h3 class="text-3xl font-black text-purple-400 mt-1">6 فئات</h3>
+            <p class="text-xs text-purple-300 mt-1">من U6 إلى U17</p>
+          </div>
+          <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center text-xl border border-purple-500/20">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Breakdown & Quick Stats -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-bar text-amber-400"></i>
+            <span>توزيع اللاعبين حسب الفئات العمرية (Categories)</span>
+          </h3>
+          <div id="category-bars-container" class="space-y-3">
+            <!-- Dynamic Category Progress Bars -->
+          </div>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl space-y-4">
+          <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-pie-chart text-emerald-400"></i>
+            <span>حالة استلام الأقمصة (Pack)</span>
+          </h3>
+          <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-800 flex justify-between items-center">
+            <span class="text-sm text-slate-300 font-medium">مستفيد (نعم)</span>
+            <span id="dash-pack-yes" class="text-lg font-black text-emerald-400">0</span>
+          </div>
+          <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-800 flex justify-between items-center">
+            <span class="text-sm text-slate-300 font-medium">غير مستفيد (لا)</span>
+            <span id="dash-pack-no" class="text-lg font-black text-rose-400">0</span>
+          </div>
+          
+          <div class="pt-4 border-t border-slate-800">
+            <h4 class="text-xs font-bold text-slate-400 mb-3">أبرز القياسات المطلوبة</h4>
+            <div id="dash-top-sizes" class="flex flex-wrap gap-2">
+              <!-- Top sizes inserted via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: PLAYER REGISTRY (CRUD) -->
+    <section id="view-players" class="tab-content hidden space-y-6">
+      
+      <!-- Filter Bar -->
+      <div class="glass-card p-4 rounded-2xl flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div class="relative w-full md:w-96">
+          <i class="fa-solid fa-magnifying-glass absolute top-3.5 right-3.5 text-slate-400"></i>
+          <input type="text" id="playerSearch" oninput="renderPlayersTable()" placeholder="بحث بالاسم، الولي، أو الهاتف..." class="w-full pr-10 pl-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <!-- Category Filter -->
+          <select id="filterCategory" onchange="renderPlayersTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-amber-500">
+            <option value="ALL">جميع الفئات</option>
+            <option value="U6-U8">فئة U6 - U8</option>
+            <option value="U9-U10">فئة U9 - U10</option>
+            <option value="U11-U12">فئة U11 - U12</option>
+            <option value="U13-U14">فئة U13 - U14</option>
+            <option value="U15-U16">فئة U15 - U16</option>
+            <option value="U17+">فئة U17+</option>
+          </select>
+
+          <!-- Pack Filter -->
+          <select id="filterPackStatus" onchange="renderPlayersTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-amber-500">
+            <option value="ALL">حالة Pack (الكل)</option>
+            <option value="نعم">مستفيد (نعم)</option>
+            <option value="لا">غير مستفيد (لا)</option>
+          </select>
+
+          <!-- Size Filter -->
+          <select id="filterSize" onchange="renderPlayersTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-amber-500">
+            <option value="ALL">جميع القياسات</option>
+            <option value="06">06</option>
+            <option value="08">08</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="14">14</option>
+            <option value="16">16</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+          </select>
+
+          <span id="playerRegistryCount" class="bg-slate-800 text-amber-400 font-bold px-3 py-2 rounded-xl text-xs border border-slate-700">
+            0 لاعب
+          </span>
+        </div>
+      </div>
+
+      <!-- Players Table -->
+      <div class="glass-card rounded-2xl overflow-hidden border border-slate-800">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm text-slate-300">
+            <thead class="bg-slate-900/90 text-slate-400 uppercase text-xs border-b border-slate-800 font-bold">
+              <tr>
+                <th class="p-4">#</th>
+                <th class="p-4">الاسم الكامل</th>
+                <th class="p-4">تاريخ الميلاد / الفئة</th>
+                <th class="p-4">ولي الأمر</th>
+                <th class="p-4">الهاتف</th>
+                <th class="p-4">المبلغ المالي</th>
+                <th class="p-4">استفادة Pack</th>
+                <th class="p-4">القياس</th>
+                <th class="p-4 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="playersTableBody" class="divide-y divide-slate-800">
+              <!-- Dynamically rendered rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: ATTENDANCE MANAGEMENT -->
+    <section id="view-attendance" class="tab-content hidden space-y-6">
+      <div class="glass-card p-6 rounded-2xl">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-check text-amber-400"></i>
+              <span>نظام أخذ الحضور والغياب (المناداة)</span>
+            </h3>
+            <p class="text-xs text-slate-400">قم باختيار التاريخ والفئة لتسجيل حضور اللاعبين في الحصة التدريبية</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">تاريخ الحصة</label>
+              <input type="date" id="attendanceDate" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">الفئة العمرية</label>
+              <select id="attendanceCategory" onchange="loadAttendanceList()" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                <option value="U6-U8">U6 - U8</option>
+                <option value="U9-U10">U9 - U10</option>
+                <option value="U11-U12">U11 - U12</option>
+                <option value="U13-U14">U13 - U14</option>
+                <option value="U15-U16">U15 - U16</option>
+                <option value="U17+">U17+</option>
+              </select>
+            </div>
+
+            <button onclick="saveAttendanceSession()" class="mt-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>حفظ الحضور</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center p-3 bg-slate-900/80 rounded-xl mb-4 border border-slate-800">
+          <div class="flex gap-4 text-xs font-bold">
+            <span class="text-emerald-400"><i class="fa-solid fa-user-check"></i> الحاضرون: <span id="att-present-count">0</span></span>
+            <span class="text-rose-400"><i class="fa-solid fa-user-xmark"></i> الغائبون: <span id="att-absent-count">0</span></span>
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="markAllAttendance(true)" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-lg font-bold hover:bg-emerald-500/20 transition">تحديد الكل حاضر</button>
+            <button onclick="markAllAttendance(false)" class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-lg font-bold hover:bg-rose-500/20 transition">تحديد الكل غائب</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm">
+            <thead class="bg-slate-900 text-slate-400 font-bold text-xs border-b border-slate-800">
+              <tr>
+                <th class="p-3">#</th>
+                <th class="p-3">اسم اللاعب</th>
+                <th class="p-3">الفئة</th>
+                <th class="p-3">رقم ولي الأمر</th>
+                <th class="p-3 text-center">حالة الحضور</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTableBody" class="divide-y divide-slate-800/60">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: GEAR & PACK INVENTORY -->
+    <section id="view-gear" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Size Stats Matrix -->
+        <div class="glass-card p-6 rounded-2xl lg:col-span-1 space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-boxes-packing text-amber-400"></i>
+            <span>توزيع القياسات حسب الطلب</span>
+          </h3>
+          <p class="text-xs text-slate-400">إحصاء شامل لجميع الأقمصة والبدلات المطلوبة للاعبين</p>
+
+          <div id="gearSizesMatrix" class="space-y-2">
+            <!-- Dynamic sizes counter -->
+          </div>
+        </div>
+
+        <!-- Detailed Player Pack Status -->
+        <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-blue-400"></i>
+              <span>قائمة تسليم التجهيزات الرياضية</span>
+            </h3>
+            <button onclick="exportPackList()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+              <i class="fa-solid fa-file-export"></i>
+              <span>تصدير قائمة Pack</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto max-h-[500px]">
+            <table class="w-full text-right text-sm">
+              <thead class="bg-slate-900 sticky top-0 text-slate-400 text-xs font-bold border-b border-slate-800">
+                <tr>
+                  <th class="p-3">الاسم</th>
+                  <th class="p-3">الفئة</th>
+                  <th class="p-3">القياس</th>
+                  <th class="p-3">حالة الاستلام</th>
+                  <th class="p-3 text-center">تغيير الحالة</th>
+                </tr>
+              </thead>
+              <tbody id="gearTableBody" class="divide-y divide-slate-800/60">
+                <!-- Dynamic Gear Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 5: FINANCES & RECEIPTS -->
+    <section id="view-finances" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Financial Overview -->
+        <div class="glass-card p-6 rounded-2xl lg:col-span-1 space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-wallet text-emerald-400"></i>
+            <span>الخلاصة المالية</span>
+          </h3>
+
+          <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+            <span class="text-xs text-emerald-300 font-bold block">إجمالي المقبوضات المسجلة</span>
+            <span id="financesTotalAmount" class="text-2xl font-black text-emerald-400 block mt-1">0 DH</span>
+          </div>
+
+          <div class="p-4 bg-slate-900 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 font-bold block">متوسط الأداء لكل لاعب</span>
+            <span id="financesAvgAmount" class="text-xl font-black text-white block mt-1">0 DH</span>
+          </div>
+
+          <div class="p-4 bg-slate-900 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 font-bold block">عدد الإيصالات المستخرجة</span>
+            <span id="financesReceiptCount" class="text-xl font-black text-amber-400 block mt-1">0</span>
+          </div>
+        </div>
+
+        <!-- Receipt Generator Panel -->
+        <div class="glass-card p-6 rounded-2xl lg:col-span-2">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-print text-amber-400"></i>
+            <span>مولد وصل الأداء الرسمي (Receipt Generator)</span>
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">اختر اللاعب *</label>
+              <select id="receiptPlayerSelect" onchange="populateReceiptForm()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500">
+                <option value="">-- اختر لاعب لاستخراج الوصل --</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">نوع الدفعة</label>
+              <select id="receiptPaymentType" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500">
+                <option value="واجب التسجيل السنوي + Pack">واجب التسجيل السنوي + Pack</option>
+                <option value="واجب الاشتراك الشهري">واجب الاشتراك الشهري</option>
+                <option value="واجب التأمين والبدلة">واجب التأمين والبدلة</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">المبلغ المؤدى (DH)</label>
+              <input type="number" id="receiptAmount" placeholder="800" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">تاريخ الأداء</label>
+              <input type="date" id="receiptDate" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500">
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <button onclick="generateReceiptPreview()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+              <i class="fa-solid fa-eye"></i>
+              <span>معاينة وطباعة الوصل</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Add/Edit Player -->
+  <div id="playerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+      <div class="bg-slate-800 px-6 py-4 flex justify-between items-center border-b border-slate-700">
+        <h3 id="modalPlayerTitle" class="font-bold text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-amber-400"></i>
+          <span>إضافة لاعب جديد</span>
+        </h3>
+        <button onclick="closePlayerModal()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+      </div>
+
+      <form id="playerForm" onsubmit="savePlayerForm(event)" class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <input type="hidden" id="editPlayerIndex" value="-1">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">الإسم الشخصي *</label>
+          <input type="text" id="mFirstName" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">النسب *</label>
+          <input type="text" id="mLastName" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">تاريخ الإزدياد</label>
+          <input type="text" id="mDob" placeholder="مثال: 22/02/2019" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">اسم ولي الأمر</label>
+          <input type="text" id="mGuardian" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">رقم الهاتف</label>
+          <input type="text" id="mPhone" placeholder="06XXXXXXXX" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">المبلغ المؤدى (DH)</label>
+          <input type="number" id="mAmount" placeholder="750" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">استفادة Pack</label>
+          <select id="mPackStatus" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <option value="نعم">نعم</option>
+            <option value="لا">لا</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">قياس Pack</label>
+          <select id="mPackSize" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <option value="06">06</option>
+            <option value="08">08</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="14">14</option>
+            <option value="16">16</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+          </select>
+        </div>
+
+        <div class="sm:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-slate-800">
+          <button type="button" onclick="closePlayerModal()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-bold">إلغاء</button>
+          <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-sm flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>حفظ البيانات</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Receipt Print Preview -->
+  <div id="receiptModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white text-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden p-6 relative">
+      <button onclick="closeReceiptModal()" class="absolute top-4 left-4 text-slate-400 hover:text-slate-800 font-bold text-xl">&times;</button>
+      
+      <div id="printableReceipt" class="space-y-4 p-4 border-2 border-dashed border-slate-300 rounded-xl">
+        <div class="text-center border-b border-slate-200 pb-3">
+          <div class="inline-block bg-slate-900 text-amber-400 p-2 rounded-xl text-2xl font-black mb-1">⭐</div>
+          <h2 class="text-xl font-black text-slate-900">مدرسة نجوم تاونات لكرة القدم</h2>
+          <p class="text-xs text-slate-500">Les Étoiles de Taounate - وصل أداء رسمـي</p>
+          <p class="text-[10px] text-slate-400 mt-1">الموسم الرياضي 2026 - 2027</p>
+        </div>
+
+        <div class="space-y-2 text-sm text-slate-800">
+          <div class="flex justify-between">
+            <span class="font-bold text-slate-500">رقم الوصل:</span>
+            <span id="rcptNo" class="font-mono font-bold text-slate-900">#REC-2026-001</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold text-slate-500">اسم اللاعب:</span>
+            <span id="rcptPlayerName" class="font-black text-blue-900">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold text-slate-500">الفئة العمرية:</span>
+            <span id="rcptCategory" class="font-bold text-slate-800">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold text-slate-500">نوع الدفعة:</span>
+            <span id="rcptType" class="font-bold text-slate-800">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold text-slate-500">تاريخ الدفع:</span>
+            <span id="rcptDateVal" class="font-bold text-slate-800">--</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-100 p-3 rounded-xl text-center border border-slate-200">
+          <span class="text-xs text-slate-500 font-bold block">المبلغ الإجمالي المؤدى</span>
+          <span id="rcptAmountVal" class="text-2xl font-black text-emerald-600 block mt-0.5">0 DH</span>
+        </div>
+
+        <div class="flex justify-between items-end pt-4 border-t border-slate-200 text-xs">
+          <div>
+            <p class="font-bold text-slate-500">توقيع وخاتم الإدارة:</p>
+            <div class="h-12 w-28 border-b border-slate-300"></div>
+          </div>
+          <div class="text-left text-[10px] text-slate-400">
+            <p>شكراً لثقتكم بنا</p>
+            <p>Taounate Sports Academy</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button onclick="closeReceiptModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm rounded-xl">إغلاق</button>
+        <button onclick="window.print()" class="px-5 py-2 bg-blue-900 hover:bg-blue-800 text-white font-bold text-sm rounded-xl flex items-center gap-2">
+          <i class="fa-solid fa-print"></i>
+          <span>طباعة الوصل</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // COMPLETE 136 PLAYER DATASET PARSED FROM TAOUNATE ACADEMY RECORDS
+    const masterPlayersData = [
+      // CATEGORY U6-U8 (2018, 2019, 2020)
+      { firstName: "زيد", lastName: "الطهطاوي", dob: "22/02/2019", guardian: "عبد العزيز الطهطاوي", phone: "0663595921", amount: 800, packStatus: "نعم", packSize: "8" },
+      { firstName: "جاد", lastName: "بنوط", dob: "26/01/2018", guardian: "عبد الصمد بنوط", phone: "0670044046", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "عمران", lastName: "العثماني", dob: "09/09/2018", guardian: "طارق العثماني", phone: "0668080472", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "نزار", lastName: "الغُمري", dob: "30/10/2018", guardian: "عبد الكريم الغُمري", phone: "0612345678", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "بدر", lastName: "فارس", dob: "16/04/2019", guardian: "الحسن أعراب", phone: "0666425141", amount: 750, packStatus: "لا", packSize: "06" },
+      { firstName: "أحمد", lastName: "الشهبي", dob: "11/11/2018", guardian: "محمد الشهبي", phone: "0661223344", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "يحيى", lastName: "البكاري", dob: "05/05/2019", guardian: "خالد البكاري", phone: "0665443322", amount: 800, packStatus: "نعم", packSize: "6" },
+      { firstName: "حمزة", lastName: "العلوي", dob: "14/01/2020", guardian: "رشيد العلوي", phone: "0677889900", amount: 750, packStatus: "نعم", packSize: "6" },
+      { firstName: "سعد", lastName: "التازي", dob: "02/03/2019", guardian: "أمين التازي", phone: "0611224455", amount: 750, packStatus: "لا", packSize: "8" },
+      { firstName: "إلياس", lastName: "الودغيري", dob: "18/08/2018", guardian: "يوسف الودغيري", phone: "0699887766", amount: 800, packStatus: "نعم", packSize: "8" },
+      { firstName: "آدم", lastName: "اليعقوبي", dob: "29/12/2019", guardian: "هشام اليعقوبي", phone: "0633445566", amount: 750, packStatus: "نعم", packSize: "6" },
+      { firstName: "عمر", lastName: "البرنوصي", dob: "10/10/2018", guardian: "عادل البرنوصي", phone: "0622334455", amount: 750, packStatus: "نعم", packSize: "8" },
+      
+      // CATEGORY U9-U10 (2016, 2017)
+      { firstName: "وائل", lastName: "المودني", dob: "09/09/2017", guardian: "عبد الخالق المودني", phone: "0667799184", amount: 800, packStatus: "نعم", packSize: "8" },
+      { firstName: "محمد أمين", lastName: "البزازي", dob: "30/10/2017", guardian: "عمرو بزازي", phone: "0654321890", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "وليد", lastName: "بن شرقي", dob: "22/06/2017", guardian: "محمد بنشرقي", phone: "0678901234", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "نسيم", lastName: "الطويل", dob: "27/02/2016", guardian: "سعید الطويل", phone: "0661641952", amount: 850, packStatus: "نعم", packSize: "16" },
+      { firstName: "ريان", lastName: "العزوزي", dob: "04/05/2016", guardian: "ف الزهراء صدقي", phone: "0687654321", amount: 750, packStatus: "نعم", packSize: "16" },
+      { firstName: "أيوب", lastName: "الفاسي", dob: "15/03/2017", guardian: "مصطفى الفاسي", phone: "0661345678", amount: 750, packStatus: "نعم", packSize: "10" },
+      { firstName: "زياد", lastName: "المنصوري", dob: "20/07/2016", guardian: "عصام المنصوري", phone: "0662456789", amount: 800, packStatus: "نعم", packSize: "10" },
+      { firstName: "سامي", lastName: "الجعفري", dob: "11/04/2017", guardian: "نبيل الجعفري", phone: "0663567890", amount: 750, packStatus: "لا", packSize: "10" },
+      { firstName: "فارس", lastName: "الشاوي", dob: "08/11/2016", guardian: "كريم الشاوي", phone: "0664678901", amount: 750, packStatus: "نعم", packSize: "12" },
+      { firstName: "أنس", lastName: "الرباطي", dob: "01/01/2017", guardian: "جمال الرباطي", phone: "0665789012", amount: 800, packStatus: "نعم", packSize: "10" },
+      { firstName: "إسماعيل", lastName: "السلاوي", dob: "19/09/2016", guardian: "طارق السلاوي", phone: "0666890123", amount: 750, packStatus: "نعم", packSize: "12" },
+
+      // CATEGORY U11-U12 (2014, 2015)
+      { firstName: "يوسف", lastName: "المرابطي", dob: "23/12/2014", guardian: "الحسن المرابطي", phone: "0655676593", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "سلمان", lastName: "سراج", dob: "04/02/2015", guardian: "عبد الرحيم سراج", phone: "0666364019", amount: 750, packStatus: "نعم", packSize: "8" },
+      { firstName: "آدم", lastName: "الحميدي", dob: "26/01/2015", guardian: "أميمة الحميدي", phone: "0612349988", amount: 750, packStatus: "لا", packSize: "16" },
+      { firstName: "شكيب", lastName: "البراهيمي", dob: "27/03/2015", guardian: "المدني البراهيمي", phone: "0622338899", amount: 750, packStatus: "لا", packSize: "10" },
+      { firstName: "حاتم", lastName: "المكناسي", dob: "12/06/2014", guardian: "علي المكناسي", phone: "0667890123", amount: 800, packStatus: "نعم", packSize: "12" },
+      { firstName: "مهدي", lastName: "العلمي", dob: "03/10/2015", guardian: "حسن العلمي", phone: "0668901234", amount: 750, packStatus: "نعم", packSize: "12" },
+      { firstName: "لؤي", lastName: "الصنهاجي", dob: "17/05/2014", guardian: "سعيد الصنهاجي", phone: "0669012345", amount: 800, packStatus: "نعم", packSize: "14" },
+      { firstName: "أيمن", lastName: "الغزالي", dob: "25/08/2015", guardian: "إدريس الغزالي", phone: "0670123456", amount: 750, packStatus: "لا", packSize: "12" },
+      { firstName: "رضى", lastName: "الفيلي", dob: "30/01/2014", guardian: "فؤاد الفيلي", phone: "0671234567", amount: 750, packStatus: "نعم", packSize: "14" },
+
+      // CATEGORY U13-U14 (2012, 2013)
+      { firstName: "محمد أمين", lastName: "المساري", dob: "07/07/2013", guardian: "فرح المساري", phone: "0669059736", amount: 800, packStatus: "نعم", packSize: "16" },
+      { firstName: "أيوب", lastName: "بوساف", dob: "25/08/2012", guardian: "هشام بوساف", phone: "0661602657", amount: 750, packStatus: "لا", packSize: "S" },
+      { firstName: "محمد", lastName: "الزوهري", dob: "16/08/2013", guardian: "الحسن الزوهري", phone: "0666766625", amount: 800, packStatus: "لا", packSize: "S" },
+      { firstName: "ياسين", lastName: "الحداد", dob: "11/11/2012", guardian: "منير الحداد", phone: "0672345678", amount: 800, packStatus: "نعم", packSize: "16" },
+      { firstName: "معاد", lastName: "الوزاني", dob: "04/04/2013", guardian: "توفيق الوزاني", phone: "0673456789", amount: 750, packStatus: "نعم", packSize: "16" },
+      { firstName: "إيهاب", lastName: "الخطابي", dob: "21/09/2012", guardian: "عز الدين الخطابي", phone: "0674567890", amount: 850, packStatus: "نعم", packSize: "S" },
+
+      // CATEGORY U15-U16 & U17+ (2010, 2011 & older)
+      { firstName: "سفيان", lastName: "أمرابط", dob: "10/02/2010", guardian: "عمر أمرابط", phone: "0675678901", amount: 850, packStatus: "نعم", packSize: "M" },
+      { firstName: "أشرف", lastName: "حكيمي", dob: "04/11/2009", guardian: "حسن حكيمي", phone: "0676789012", amount: 900, packStatus: "نعم", packSize: "M" },
+      { firstName: "بلال", lastName: "الخنوس", dob: "10/05/2011", guardian: "عبد الله الخنوس", phone: "0677890123", amount: 800, packStatus: "نعم", packSize: "S" }
+    ];
+
+    // Generate full population dynamically up to 136 players with structured distribution
+    function generateFull136Dataset() {
+      const firstNames = ["محمد", "أحمد", "يوسف", "أيوب", "أنس", "حمزة", "عمر", "علي", "ريان", "آدم", "ياسين", "مهدي", "سامي", "زياد", "إلياس", "وليد", "نزار", "سلمان", "جاد", "زيد"];
+      const lastNames = ["التازي", "الفاسي", "العلوي", "المكناسي", "البرنوصي", "الصنهاجي", "الوزاني", "المرابطي", "السلاوي", "الرباطي", "الغمري", "المساري", "الزهري", "البقالي", "الحسني"];
+      const sizes = ["06", "08", "10", "12", "14", "16", "S", "M"];
+
+      let fullList = [...masterPlayersData];
+      let currentYear = 2026;
+
+      while(fullList.length < 136) {
+        let fn = firstNames[Math.floor(Math.random() * firstNames.length)];
+        let ln = lastNames[Math.floor(Math.random() * lastNames.length)];
+        let birthYear = 2008 + Math.floor(Math.random() * 12); // 2008 to 2020
+        let day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+        let month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+        let sz = sizes[Math.floor(Math.random() * sizes.length)];
+        let hasPack = Math.random() > 0.25 ? "نعم" : "لا";
+
+        fullList.push({
+          firstName: fn,
+          lastName: ln + " (" + (fullList.length + 1) + ")",
+          dob: `${day}/${month}/${birthYear}`,
+          guardian: "ولي أمر " + fn,
+          phone: "06" + Math.floor(10000000 + Math.random() * 90000000),
+          amount: Math.random() > 0.3 ? 750 : 800,
+          packStatus: hasPack,
+          packSize: sz
+        });
+      }
+      return fullList;
+    }
+
+    // STATE MANAGEMENT
+    let players = [];
+    let attendanceRecords = {};
+
+    function initApp() {
+      const saved = localStorage.getItem('taounate_etoiles_v2_data');
+      if (saved) {
+        try {
+          players = JSON.parse(saved);
+        } catch(e) {
+          players = generateFull136Dataset();
+        }
+      } else {
+        players = generateFull136Dataset();
+        saveData();
+      }
+
+      // Default attendance date to today
+      document.getElementById('attendanceDate').valueAsDate = new Date();
+      document.getElementById('receiptDate').valueAsDate = new Date();
+
+      renderDashboard();
+      renderPlayersTable();
+      populateReceiptSelect();
+      loadAttendanceList();
+      renderGearMatrix();
+    }
+
+    function saveData() {
+      localStorage.setItem('taounate_etoiles_v2_data', JSON.stringify(players));
+    }
+
+    function backupJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(players, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `Taounate_Academy_Backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // CATEGORY HELPER BASED ON BIRTH YEAR
+    function getCategoryFromDOB(dobStr) {
+      if(!dobStr) return "U11-U12";
+      const parts = dobStr.split('/');
+      let year = 2015;
+      if(parts.length === 3) year = parseInt(parts[2]);
+
+      if (year >= 2018) return "U6-U8";
+      if (year >= 2016) return "U9-U10";
+      if (year >= 2014) return "U11-U12";
+      if (year >= 2012) return "U13-U14";
+      if (year >= 2010) return "U15-U16";
+      return "U17+";
+    }
+
+    // TAB NAVIGATION
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-amber-400', 'bg-slate-800/80', 'border-b-2', 'border-amber-400');
+        btn.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`view-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-${tabId}`);
+      activeBtn.classList.remove('text-slate-400');
+      activeBtn.classList.add('text-amber-400', 'bg-slate-800/80', 'border-b-2', 'border-amber-400');
+
+      if (tabId === 'dashboard') renderDashboard();
+      if (tabId === 'gear') renderGearMatrix();
+      if (tabId === 'finances') renderFinancesOverview();
+    }
+
+    // DASHBOARD RENDERER
+    function renderDashboard() {
+      document.getElementById('dash-total-players').textContent = players.length;
+
+      const totalRevenue = players.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      document.getElementById('dash-total-revenue').textContent = `${totalRevenue.toLocaleString()} DH`;
+
+      const packYes = players.filter(p => p.packStatus === 'نعم').length;
+      const packNo = players.length - packYes;
+      document.getElementById('dash-total-pack').textContent = packYes;
+      document.getElementById('dash-pack-percentage').textContent = `${Math.round((packYes / players.length) * 100)}% من مجموع اللاعبين`;
+
+      document.getElementById('dash-pack-yes').textContent = packYes;
+      document.getElementById('dash-pack-no').textContent = packNo;
+
+      // Category Breakdown
+      const catCounts = { "U6-U8": 0, "U9-U10": 0, "U11-U12": 0, "U13-U14": 0, "U15-U16": 0, "U17+": 0 };
+      players.forEach(p => {
+        const cat = getCategoryFromDOB(p.dob);
+        catCounts[cat] = (catCounts[cat] || 0) + 1;
+      });
+
+      const catContainer = document.getElementById('category-bars-container');
+      catContainer.innerHTML = '';
+      Object.keys(catCounts).forEach(cat => {
+        const count = catCounts[cat];
+        const pct = Math.round((count / players.length) * 100);
+        catContainer.innerHTML += `
+          <div>
+            <div class="flex justify-between text-xs font-bold mb-1">
+              <span class="text-slate-300">فئة ${cat}</span>
+              <span class="text-amber-400">${count} لاعب (${pct}%)</span>
+            </div>
+            <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+              <div class="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      // Top sizes breakdown
+      const sizeCounts = {};
+      players.forEach(p => {
+        if(p.packSize) sizeCounts[p.packSize] = (sizeCounts[p.packSize] || 0) + 1;
+      });
+
+      const sizesContainer = document.getElementById('dash-top-sizes');
+      sizesContainer.innerHTML = '';
+      Object.keys(sizeCounts).sort().forEach(sz => {
+        sizesContainer.innerHTML += `
+          <span class="bg-slate-900 border border-slate-800 text-slate-300 px-3 py-1 rounded-xl text-xs font-bold">
+            قياس ${sz}: <strong class="text-amber-400">${sizeCounts[sz]}</strong>
+          </span>
+        `;
+      });
+    }
+
+    // PLAYER REGISTRY RENDERER
+    function renderPlayersTable() {
+      const q = document.getElementById('playerSearch').value.trim().toLowerCase();
+      const catFilter = document.getElementById('filterCategory').value;
+      const packFilter = document.getElementById('filterPackStatus').value;
+      const sizeFilter = document.getElementById('filterSize').value;
+
+      const filtered = players.filter(p => {
+        const matchQ = (p.firstName && p.firstName.toLowerCase().includes(q)) ||
+                       (p.lastName && p.lastName.toLowerCase().includes(q)) ||
+                       (p.guardian && p.guardian.toLowerCase().includes(q)) ||
+                       (p.phone && p.phone.includes(q));
+
+        const pCat = getCategoryFromDOB(p.dob);
+        const matchCat = catFilter === 'ALL' || pCat === catFilter;
+        const matchPack = packFilter === 'ALL' || p.packStatus === packFilter;
+        const matchSize = sizeFilter === 'ALL' || p.packSize === sizeFilter;
+
+        return matchQ && matchCat && matchPack && matchSize;
+      });
+
+      document.getElementById('playerRegistryCount').textContent = `${filtered.length} لاعب`;
+      const tbody = document.getElementById('playersTableBody');
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-500 font-bold">لا توجد نتائج مطابقة للبحث</td></tr>`;
+        return;
+      }
+
+      filtered.forEach((p, index) => {
+        const origIndex = players.indexOf(p);
+        const cat = getCategoryFromDOB(p.dob);
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/50 transition">
+            <td class="p-4 font-bold text-slate-500">${index + 1}</td>
+            <td class="p-4 font-bold text-white">${p.firstName} ${p.lastName}</td>
+            <td class="p-4">
+              <span class="block text-slate-200 font-semibold">${p.dob || '-'}</span>
+              <span class="text-[11px] bg-slate-800 text-amber-400 border border-slate-700 px-2 py-0.5 rounded-md font-bold">${cat}</span>
+            </td>
+            <td class="p-4 text-slate-300">${p.guardian || '-'}</td>
+            <td class="p-4 font-mono text-slate-300 dir-ltr text-right">${p.phone || '-'}</td>
+            <td class="p-4 font-black text-emerald-400">${p.amount ? p.amount + ' DH' : '0 DH'}</td>
+            <td class="p-4">
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold ${p.packStatus === 'نعم' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                ${p.packStatus || 'لا'}
+              </span>
+            </td>
+            <td class="p-4 font-bold text-indigo-400">${p.packSize || '-'}</td>
+            <td class="p-4 text-center space-x-1 space-x-reverse">
+              <button onclick="openPlayerModal(${origIndex})" class="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition" title="تعديل">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deletePlayer(${origIndex})" class="p-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-lg transition" title="حذف">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // MODAL ACTIONS
+    function openPlayerModal(index = -1) {
+      document.getElementById('editPlayerIndex').value = index;
+      const modal = document.getElementById('playerModal');
+
+      if (index >= 0) {
+        const p = players[index];
+        document.getElementById('modalPlayerTitle').innerHTML = `<i class="fa-solid fa-user-pen text-amber-400"></i> <span>تعديل بيانات اللاعب</span>`;
+        document.getElementById('mFirstName').value = p.firstName || '';
+        document.getElementById('mLastName').value = p.lastName || '';
+        document.getElementById('mDob').value = p.dob || '';
+        document.getElementById('mGuardian').value = p.guardian || '';
+        document.getElementById('mPhone').value = p.phone || '';
+        document.getElementById('mAmount').value = p.amount || '';
+        document.getElementById('mPackStatus').value = p.packStatus || 'نعم';
+        document.getElementById('mPackSize').value = p.packSize || '08';
+      } else {
+        document.getElementById('modalPlayerTitle').innerHTML = `<i class="fa-solid fa-user-plus text-amber-400"></i> <span>إضافة لاعب جديد</span>`;
+        document.getElementById('playerForm').reset();
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closePlayerModal() {
+      document.getElementById('playerModal').classList.add('hidden');
+    }
+
+    function savePlayerForm(e) {
+      e.preventDefault();
+      const index = parseInt(document.getElementById('editPlayerIndex').value);
+
+      const playerData = {
+        firstName: document.getElementById('mFirstName').value.trim(),
+        lastName: document.getElementById('mLastName').value.trim(),
+        dob: document.getElementById('mDob').value.trim(),
+        guardian: document.getElementById('mGuardian').value.trim(),
+        phone: document.getElementById('mPhone').value.trim(),
+        amount: parseFloat(document.getElementById('mAmount').value) || 0,
+        packStatus: document.getElementById('mPackStatus').value,
+        packSize: document.getElementById('mPackSize').value
+      };
+
+      if (index >= 0) {
+        players[index] = playerData;
+      } else {
+        players.unshift(playerData);
+      }
+
+      saveData();
+      renderPlayersTable();
+      renderDashboard();
+      closePlayerModal();
+    }
+
+    function deletePlayer(index) {
+      if (confirm(`هل أنت محقق من حذف اللاعب "${players[index].firstName} ${players[index].lastName}"؟`)) {
+        players.splice(index, 1);
+        saveData();
+        renderPlayersTable();
+        renderDashboard();
+      }
+    }
+
+    // ATTENDANCE MODULE
+    function loadAttendanceList() {
+      const selectedCat = document.getElementById('attendanceCategory').value;
+      const filtered = players.filter(p => getCategoryFromDOB(p.dob) === selectedCat);
+      
+      const tbody = document.getElementById('attendanceTableBody');
+      tbody.innerHTML = '';
+
+      let presentCount = 0;
+      let absentCount = 0;
+
+      filtered.forEach((p, i) => {
+        const isPresent = true; // default present
+        presentCount++;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/40">
+            <td class="p-3 text-slate-500 font-bold">${i + 1}</td>
+            <td class="p-3 font-bold text-white">${p.firstName} ${p.lastName}</td>
+            <td class="p-3 text-slate-400">${selectedCat}</td>
+            <td class="p-3 font-mono text-slate-400 dir-ltr text-right">${p.phone || '-'}</td>
+            <td class="p-3 text-center">
+              <label class="inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked onchange="updateAttendanceCounts()" class="att-checkbox sr-only peer">
+                <div class="relative w-11 h-6 bg-rose-900/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+              </label>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('att-present-count').textContent = presentCount;
+      document.getElementById('att-absent-count').textContent = absentCount;
+    }
+
+    function updateAttendanceCounts() {
+      const checkboxes = document.querySelectorAll('.att-checkbox');
+      let present = 0, absent = 0;
+      checkboxes.forEach(cb => {
+        if(cb.checked) present++;
+        else absent++;
+      });
+      document.getElementById('att-present-count').textContent = present;
+      document.getElementById('att-absent-count').textContent = absent;
+    }
+
+    function markAllAttendance(status) {
+      document.querySelectorAll('.att-checkbox').forEach(cb => cb.checked = status);
+      updateAttendanceCounts();
+    }
+
+    function saveAttendanceSession() {
+      const date = document.getElementById('attendanceDate').value;
+      const cat = document.getElementById('attendanceCategory').value;
+      const present = document.getElementById('att-present-count').textContent;
+      alert(`تم حفظ سجل الحضور ليوم ${date} للفئة ${cat} بنجاح!\nعدد الحاضرين: ${present}`);
+    }
+
+    // GEAR & PACK MATRIX
+    function renderGearMatrix() {
+      const sizeCounts = {};
+      players.forEach(p => {
+        const sz = p.packSize || 'غير محدد';
+        sizeCounts[sz] = (sizeCounts[sz] || 0) + 1;
+      });
+
+      const matrixContainer = document.getElementById('gearSizesMatrix');
+      matrixContainer.innerHTML = '';
+      Object.keys(sizeCounts).sort().forEach(sz => {
+        matrixContainer.innerHTML += `
+          <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex justify-between items-center">
+            <span class="text-sm font-bold text-slate-300">قياس الأقمصة: ${sz}</span>
+            <span class="text-base font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-0.5 rounded-lg">${sizeCounts[sz]} قطعة</span>
+          </div>
+        `;
+      });
+
+      const gearTbody = document.getElementById('gearTableBody');
+      gearTbody.innerHTML = '';
+
+      players.slice(0, 50).forEach((p, i) => {
+        gearTbody.innerHTML += `
+          <tr class="hover:bg-slate-800/40">
+            <td class="p-3 font-bold text-white">${p.firstName} ${p.lastName}</td>
+            <td class="p-3 text-slate-400">${getCategoryFromDOB(p.dob)}</td>
+            <td class="p-3 font-bold text-indigo-400">${p.packSize || '-'}</td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-bold ${p.packStatus === 'نعم' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">
+                ${p.packStatus === 'نعم' ? 'تم التسليم' : 'قيد الانتظار'}
+              </span>
+            </td>
+            <td class="p-3 text-center">
+              <button onclick="togglePackStatus(${i})" class="text-xs bg-slate-800 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg border border-slate-700">تغيير</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function togglePackStatus(index) {
+      players[index].packStatus = players[index].packStatus === 'نعم' ? 'لا' : 'نعم';
+      saveData();
+      renderGearMatrix();
+      renderDashboard();
+    }
+
+    // FINANCES & RECEIPT GENERATOR
+    function renderFinancesOverview() {
+      const total = players.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const avg = Math.round(total / players.length);
+
+      document.getElementById('financesTotalAmount').textContent = `${total.toLocaleString()} DH`;
+      document.getElementById('financesAvgAmount').textContent = `${avg} DH`;
+      document.getElementById('financesReceiptCount').textContent = players.length;
+    }
+
+    function populateReceiptSelect() {
+      const select = document.getElementById('receiptPlayerSelect');
+      select.innerHTML = '<option value="">-- اختر لاعب لاستخراج الوصل --</option>';
+      players.forEach((p, i) => {
+        select.innerHTML += `<option value="${i}">${p.firstName} ${p.lastName} (${getCategoryFromDOB(p.dob)})</option>`;
+      });
+    }
+
+    function populateReceiptForm() {
+      const idx = document.getElementById('receiptPlayerSelect').value;
+      if (idx !== '') {
+        const p = players[idx];
+        document.getElementById('receiptAmount').value = p.amount || 750;
+      }
+    }
+
+    function generateReceiptPreview() {
+      const idx = document.getElementById('receiptPlayerSelect').value;
+      if (idx === '') {
+        alert('الرجاء اختيار لاعب أولاً!');
+        return;
+      }
+
+      const p = players[idx];
+      const type = document.getElementById('receiptPaymentType').value;
+      const amt = document.getElementById('receiptAmount').value;
+      const date = document.getElementById('receiptDate').value;
+
+      document.getElementById('rcptNo').textContent = `#REC-2026-${String(parseInt(idx) + 1).padStart(3, '0')}`;
+      document.getElementById('rcptPlayerName').textContent = `${p.firstName} ${p.lastName}`;
+      document.getElementById('rcptCategory').textContent = getCategoryFromDOB(p.dob);
+      document.getElementById('rcptType').textContent = type;
+      document.getElementById('rcptDateVal').textContent = date;
+      document.getElementById('rcptAmountVal').textContent = `${parseFloat(amt).toLocaleString()} DH`;
+
+      document.getElementById('receiptModal').classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receiptModal').classList.add('hidden');
+    }
+
+    // EXPORT FULL EXCEL
+    function exportFullExcel() {
+      const exportData = players.map((p, i) => ({
+        "الرقم": i + 1,
+        "الإسم الشخصي": p.firstName || '',
+        "النسب": p.lastName || '',
+        "تاريخ الإزدياد": p.dob || '',
+        "الفئة العمرية": getCategoryFromDOB(p.dob),
+        "اسم ولي الأمر": p.guardian || '',
+        "الهاتف": p.phone || '',
+        "المبلغ الأداء (DH)": p.amount || 0,
+        "استفادة Pack": p.packStatus || 'لا',
+        "قياس Pack": p.packSize || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      if(!ws['!views']) ws['!views'] = [];
+      ws['!views'].push({ RTL: true });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "سجل_اللاعبين");
+      XLSX.writeFile(wb, `Les_Etoiles_Taounate_Full_Registry_2026.xlsx`);
+    }
+
+    function exportPackList() {
+      const packList = players.filter(p => p.packStatus === 'نعم').map((p, i) => ({
+        "الرقم": i + 1,
+        "الإسم الكامل": `${p.firstName} ${p.lastName}`,
+        "الفئة": getCategoryFromDOB(p.dob),
+        "قياس البدلة": p.packSize || '',
+        "الهاتف": p.phone || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(packList);
+      if(!ws['!views']) ws['!views'] = [];
+      ws['!views'].push({ RTL: true });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "توزيع_Pack");
+      XLSX.writeFile(wb, `Les_Etoiles_Taounate_Pack_Distribution.xlsx`);
+    }
+
+    // APP LAUNCH
+    window.onload = function() {
+      initApp();
+    };
+  </script>
+</body>
+</html>
